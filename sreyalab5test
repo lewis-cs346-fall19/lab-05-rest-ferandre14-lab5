@@ -1,0 +1,187 @@
+#! /usr/bin/python3
+import os
+import json
+import cgi
+import cgitb
+cgitb.enable()
+import MySQLdb
+import passwords
+
+
+
+#conn = MySQLdb.connect(host = passwords.SQL_HOST, user = passwords.SQL_USER, passwd = passwords.SQL_PASSWD, db = "coursedata")
+
+#form = cgi.FieldStorage()
+
+def get_courses():
+
+    print("Content-Type: application/json")
+    print("Status: 200 OK")
+    print()
+
+    print("hello")
+    conn = MySQLdb.connect(host = passwords.SQL_HOST, user = passwords.SQL_USER, passwd = passwords.SQL_PASSWD, db = "coursedata")
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM courses;")
+    val = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    classdata = []
+    for i in val:
+        classdata.append({"ID":i[0],"DEPT":i[1],"COURSE":i[2], "UNITS": i[3], "URL":"http://54.144.195.46/cgi-bin/sreyalab5test/courses/"+str(i[0])})
+
+    classdata_json = json.dumps(classdata,indent=2)
+
+    
+    print (classdata)
+    return classdata
+
+def post_courses(): #takes in input added
+    print("Content-Type: text/html")
+    print("Status: 200 OK")
+    print()
+
+    print("""<html>
+    <head></head>
+
+    <body>
+    <form action="coursesOut" method="POST">
+    <p>Department:
+    <br><input type="text" name="dept">
+    </p><p>Course Number:
+    <br><input type="text" name="course">
+    </p><p>Units:
+    <br><input type="number" name="credits">
+    <input type="submit">
+    </p></form>
+    </body></html>""")
+    
+def coursesOut():
+    form = cgi.FieldStorage()
+    
+    dept = form['dept'].value if "dept" in form else ''
+    courses= form['course'].value if "course" in form else ''
+    credit = form['credits'].value if "credits" in form else ''
+    #Checks to see if form values were passed in order to add new customer
+  
+    conn = MySQLdb.connect(host = passwords.SQL_HOST, user = passwords.SQL_USER, passwd = passwords.SQL_PASSWD, db = "coursedata")
+    cursor = conn.cursor()
+    cursor.execute("""INSERT INTO courses(dept, course, units) VALUES (%s, %s, %s)""", (dept, courses, credit))
+    new_id = cursor.lastrowid
+    cursor.close()
+    conn.commit()
+    conn.close()
+    
+   # return new_id
+    
+    redirect_Reload_POST()
+
+'''
+def post_courses(): #takes in input added
+    print("Content-Type: text/html")
+    print("Status: 200 OK")
+    print()
+
+    print("""<html>
+    <head></head>
+
+    <body>
+    <form action="outputcourses" method="POST">
+    <p>Department:
+    <br><input type="text" name="dept">
+    </p><p>Course Number:
+    <br><input type="text" name="course">
+    </p><p>Units:
+    <br><input type="number" name="credits">
+    <input type="submit">
+    </p></form>
+    </body></html>""")
+    
+def outputcourses():
+    print("Content-Type: text/html")
+    print("Status: 200 OK")
+    print()
+    
+    form = cgi.FieldStorage()
+
+    if "dept" in form:
+        deptinput = form['dept'].value
+        print(deptinput)
+    else:
+        deptinput= ""
+        
+    if "course" in form:
+        coursesinput = form['course'].value
+        print(coursesinput)
+    else:
+        coursesinput= ""
+        
+    if "credits" in form:
+        creditsinput = form['credits'].value
+        print(creditsinput)
+    else:
+        creditsinput= ""
+   
+
+
+    conn = MySQLdb.connect(host = passwords.SQL_HOST, user = passwords.SQL_USER, passwd = passwords.SQL_PASSWD, db = "coursedata")
+    cursor = conn.cursor()
+    cursor.execute("""INSERT INTO courses(dept, course, units) VALUES (%s, %s, %s);""", (deptinput, coursesinput, creditsinput))
+    new_id = cursor.lastrowid
+    cursor.close()
+    conn.commit()
+    conn.close()
+
+    #return new_id
+
+
+    redirect_Reload_POST()
+
+    #SOS^^^^^^^^!!!!!!!! lol
+'''
+def index():
+    print('Content-Type: text/html')
+    print('Status: 200 OK')
+    print()
+    print(''' <html>
+        <head> <title>Lab 5! Index</title> </head>
+        <body>
+        <h1>LAB 5 - Sreya and Fernando </h1>
+        <b><font size="+2">Courses (REST) Website: Main Links</font></b>
+        <p><a href="get_courses">Courses</a> (GET)
+        <br> <a href="post_courses">New course form submission</a> (form, will POST to courses)
+        </p><hr>
+        <p><a href="/cgi-bin/sreyalab5test">Back to the root of this REST site</a></p>
+        </body> </html>''')
+
+def redirect_to_index():
+    print('Status: 302 Redirect')
+    print('Location: http://54.144.195.46/cgi-bin/sreyalab5test/')
+    print()
+
+def redirect_Reload_POST():
+   # new_id=post_courses()
+    print("Status: 302 Redirect")
+    print("Location: get_courses")
+    #print("Location: " + str(new_id))
+    print()
+
+
+if 'PATH_INFO' in os.environ:
+    path=os.environ['PATH_INFO']
+    
+else:
+    path= "/"
+    
+
+    
+if path == '/':
+    index()
+elif path== '/get_courses':
+    get_courses()
+elif path== '/post_courses':
+    post_courses()
+else:
+    redirect_to_index()
+
